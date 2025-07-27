@@ -1,0 +1,24 @@
+# Configurazioni base
+app:
+  name: "TheItalianPoetry - Author Management"
+  version: "1.0.0"
+  environment: "production"
+
+# Configurazioni Supabase
+supabase:
+  url: "https://djikypgmchywybjxbwar.supabase.co"
+  anon_key: "eyJhbGciOiJIUzI1NiIs..."
+  storage_bucket: "profile-images"
+
+# Autenticazione
+auth:
+  authorized_email: "manuel.voll69@gmail.com"
+  providers: ["google"]
+  cookie_name: "sb-auth-token"
+  cookie_lifetime: 3600 # 1 ora
+
+# Impostazioni UI
+ui:
+  default_theme: "light"
+  poem_preview_length: 200
+  max_image_size_mb: 2
