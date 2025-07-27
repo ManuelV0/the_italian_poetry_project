@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TheItalianPoetry - Gestione Autore</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        /* CSS BASILARE */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        
+        .hidden { display: none; }
+        
+        #auth-section, #app-section {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        #auth-section {
+            text-align: center;
+            background: #f5f5f5;
+        }
+        
+        #app-section {
+            background: #fff;
+            border: 1px solid #ddd;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        textarea {
+            min-height: 150px;
+        }
+        
+        .poem-card {
+            border: 1px solid #eee;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        
+        .draft { background: #ff9800; color: white; }
+        .published { background: #4CAF50; color: white; }
+    </style>
+</head>
+<body>
+    <div id="auth-section">
+        <h1><i class="fas fa-feather-alt"></i> Accesso Autore</h1>
+        <button id="login-btn"><i class="fab fa-google"></i> Accedi con Google</button>
+        <p>Area riservata all'autore del sito</p>
+    </div>
+
+    <div id="app-section" class="hidden">
+        <h1>Ciao, <span id="author-name"></span>!</h1>
+        
+        <div class="editor-container">
+            <h2><i class="fas fa-plus-circle"></i> Nuova Poesia</h2>
+            <form id="poem-form">
+                <input type="text" id="poem-title" placeholder="Titolo" required>
+                <textarea id="poem-content" placeholder="Scrivi qui la tua poesia..." required></textarea>
+                <select id="poem-status">
+                    <option value="draft">Bozza</option>
+                    <option value="published">Pubblicata</option>
+                </select>
+                <button type="submit">Salva Poesia</button>
+                <p id="form-message"></p>
+            </form>
+        </div>
+
+        <div id="poems-list">
+            <h2><i class="fas fa-book-open"></i> Le tue poesie</h2>
+            <div id="poems-container"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Configurazione
+        const SUPABASE_URL = 'https://djikypgmchywybjxbwar.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqaWt5cGdtY2h5d3lianhid2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyMTMyOTIsImV4cCI6MjA2ODc4OTI5Mn0.dXqWkg47xTg2YtfLhBLrFd5AIB838KdsmR9qsMPkk8Q';
+        const AUTHORIZED_EMAIL = "manuel.voll69@gmail.com";
+
+        // Inizializzazione Supabase con PKCE
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: {
+                flowType: 'pkce',
+                detectSessionInUrl: true,
+                persistSession: true,
+                storage: localStorage
+            }
+        });
+
+        // Elementi DOM
+        const authSection = document.getElementById('auth-section');
+        const appSection = document.getElementById('app-section');
+        const loginBtn = document.getElementById('login-btn');
+        const poemForm = document.getElementById('poem-form');
+        const authorNameElement = document.getElementById('author-name');
+        const poemsContainer = document.getElementById('poems-container');
+        const formMessage = document.getElementById('form-message');
+
+        // Funzione principale
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Verifica lo stato di autenticazione iniziale
+            await checkAuthState();
+            
+            // Listener per il login
+            loginBtn.addEventListener('click', handleGoogleLogin);
+            
+            // Listener per il form della poesia
+            poemForm.addEventListener('submit', handlePoemSubmit);
+        });
+
+        // Gestione autenticazione
+        async function handleGoogleLogin() {
+            try {
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.href,
+                        queryParams: {
+                            prompt: 'consent',
+                            access_type: 'offline'
+                        }
+                    }
+                });
+                
+                if (error) throw error;
+            } catch (error) {
+                console.error("Login error:", error);
+                showMessage("Errore durante il login", 'error');
+            }
+        }
+
+        async function checkAuthState() {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) throw error;
+                
+                if (session?.user?.email === AUTHORIZED_EMAIL) {
+                    authSection.classList.add('hidden');
+                    appSection.classList.remove('hidden');
+                    authorNameElement.textContent = session.user.user_metadata?.name || session.user.email.split('@')[0];
+                    loadPoems();
+                } else if (session) {
+                    await supabase.auth.signOut();
+                }
+            } catch (error) {
+                console.error("Auth check error:", error);
+            }
+        }
+
+        // Gestione poesie
+        async function loadPoems() {
+            try {
+                poemsContainer.innerHTML = '<p>Caricamento poesie...</p>';
+                
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                const { data, error } = await supabase
+                    .from('poesie')
+                    .select('*')
+                    .eq('profile_id', session.user.id)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                renderPoems(data);
+            } catch (error) {
+                console.error("Load poems error:", error);
+                poemsContainer.innerHTML = '<p>Errore nel caricamento</p>';
+            }
+        }
+
+        function renderPoems(poems) {
+            if (poems.length === 0) {
+                poemsContainer.innerHTML = '<p>Nessuna poesia pubblicata</p>';
+                return;
+            }
+            
+            poemsContainer.innerHTML = poems.map(poem => `
+                <div class="poem-card">
+                    <h3>${poem.title} 
+                        <span class="status-badge ${poem.status}">
+                            ${poem.status === 'draft' ? 'Bozza' : 'Pubblicata'}
+                        </span>
+                    </h3>
+                    <p>${poem.content.substring(0, 100)}${poem.content.length > 100 ? '...' : ''}</p>
+                    <p><small>${new Date(poem.created_at).toLocaleDateString('it-IT')}</small></p>
+                    <button class="btn-edit" data-id="${poem.id}">Modifica</button>
+                    <button class="btn-delete" data-id="${poem.id}">Elimina</button>
+                </div>
+            `).join('');
+        }
+
+        async function handlePoemSubmit(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('poem-title').value;
+            const content = document.getElementById('poem-content').value;
+            const status = document.getElementById('poem-status').value;
+            
+            if (!title || !content) {
+                showMessage('Compila tutti i campi', 'error');
+                return;
+            }
+            
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                const { error } = await supabase.from('poesie').insert([{
+                    title,
+                    content,
+                    status,
+                    profile_id: session.user.id
+                }]);
+                
+                if (error) throw error;
+                
+                showMessage('Poesia salvata!', 'success');
+                poemForm.reset();
+                await loadPoems();
+            } catch (error) {
+                console.error("Save poem error:", error);
+                showMessage('Errore nel salvataggio', 'error');
+            }
+        }
+
+        // Funzioni di utilità
+        function showMessage(message, type) {
+            formMessage.textContent = message;
+            formMessage.style.color = type === 'error' ? 'red' : 'green';
+            setTimeout(() => formMessage.textContent = '', 3000);
+        }
+
+        // Listener per cambiamenti di stato autenticazione
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') {
+                checkAuthState();
+            }
+        });
+    </script>
+</body>
+</html>

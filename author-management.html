@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TheItalianPoetry - Gestione Autore</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --background-color: #ecf0f1;
+            --surface-color: #ffffff;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --text-color: #333;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 1rem;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Sezione Autenticazione */
+        #auth-section, #unauthorized-section {
+            text-align: center;
+            background: var(--surface-color);
+            padding: 3rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        /* Sezione Gestione */
+        .management-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+        }
+
+        .profile-card, .poems-section, .card {
+            background: var(--surface-color);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+        
+        .profile-header {
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        #profile-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--secondary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: var(--border-radius);
+            box-sizing: border-box;
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        /* Poesie */
+        .poem-card {
+            border: 1px solid #eee;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+        }
+        .status-badge.published { background-color: var(--success-color); }
+        .status-badge.draft { background-color: #f39c12; }
+        
+        .poem-actions {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #aaa;
+        }
+        
+        @media (max-width: 768px) {
+            .management-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>TheItalianPoetry</h1>
+            <p>Pannello di Gestione Autore</p>
+        </header>
+
+        <main>
+            <section id="auth-section">
+                <h2>Accesso Richiesto</h2>
+                <p>Per gestire i tuoi contenuti, accedi con il tuo account Google autorizzato.</p>
+                <button id="login-btn" class="btn btn-primary"><i class="fab fa-google"></i> Accedi con Google</button>
+            </section>
+
+            <section id="unauthorized-section" class="hidden">
+                <h2>Accesso Negato</h2>
+                <p>L'account con cui hai effettuato l'accesso non è autorizzato a gestire questa pagina.</p>
+                <button id="logout-btn-unauthorized" class="btn btn-danger">Logout</button>
+            </section>
+
+            <section id="management-section" class="hidden">
+                <div class="management-grid">
+                    <aside class="profile-card">
+                        <div class="profile-header">
+                            <img id="profile-image" src="https://via.placeholder.com/100" alt="Immagine profilo">
+                            <h3 id="profile-display-name">Nome Autore</h3>
+                            <p id="profile-email" style="font-size: 0.9rem; color: #777;">email@dominio.com</p>
+                            <input type="file" id="profile-image-input" class="hidden" accept="image/*">
+                            <button onclick="document.getElementById('profile-image-input').click()" class="btn btn-primary" style="font-size:0.8rem; padding: 5px 10px;">Cambia Immagine</button>
+                        </div>
+                        <div class="form-group">
+                            <label for="author-name">Nome Autore</label>
+                            <input type="text" id="author-name" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="author-bio">Biografia</label>
+                            <textarea id="author-bio" class="form-control"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="author-instagram">Instagram (username)</label>
+                            <input type="text" id="author-instagram" class="form-control" placeholder="es. theitalianpoetry">
+                        </div>
+                        <button id="save-profile-btn" class="btn btn-primary" style="width:100%;">Salva Profilo</button>
+                        <button id="logout-btn" class="btn btn-danger" style="width:100%; margin-top: 1rem;">Logout</button>
+                    </aside>
+
+                    <div class="poems-section">
+                        <div class="card" style="margin-bottom: 2rem;">
+                            <h2>Aggiungi una nuova poesia</h2>
+                            <form id="poem-form">
+                                <div class="form-group">
+                                    <label for="poem-title">Titolo</label>
+                                    <input type="text" id="poem-title" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="poem-content">Testo della poesia</label>
+                                    <textarea id="poem-content" class="form-control" required></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="poem-status">Stato</label>
+                                    <select id="poem-status" class="form-control">
+                                        <option value="draft" selected>Bozza</option>
+                                        <option value="published">Pubblicata</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Salva Poesia</button>
+                            </form>
+                        </div>
+                        <div class="card">
+                            <h2>Le tue poesie</h2>
+                            <div id="poems-container">
+                                <p>Nessuna poesia ancora creata.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-modal-btn" class="close-btn">&times;</span>
+            <h2>Modifica Poesia</h2>
+            <form id="edit-poem-form">
+                <input type="hidden" id="edit-poem-id">
+                <div class="form-group">
+                    <label for="edit-poem-title">Titolo</label>
+                    <input type="text" id="edit-poem-title" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-poem-content">Testo</label>
+                    <textarea id="edit-poem-content" class="form-control" style="min-height: 200px;" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="edit-poem-status">Stato</label>
+                    <select id="edit-poem-status" class="form-control">
+                        <option value="draft">Bozza</option>
+                        <option value="published">Pubblicata</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+            </form>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // ✅ VARIABILI GLOBALI
+        let currentUser = null;
+        let profileData = null;
+        let allPoems = [];
+        let supabase;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 🔐 CONFIGURAZIONE SUPABASE
+            const SUPABASE_URL = 'https://djikypgmchywybjxbwar.supabase.co';
+            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqaWt5cGdtY2h5d3lianhid2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyMTMyOTIsImV4cCI6MjA2ODc4OTI5Mn0.dXqWkg47xTg2YtfLhBLrFd5AIB838KdsmR9qsMPkk8Q';
+            const AUTHORIZED_EMAIL = "manuel.voll69@gmail.com";
+
+            // 🛡️ INIZIALIZZAZIONE CON GESTIONE ERRORI
+            try {
+                supabase = supabase.js.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                    auth: {
+                        persistSession: true,
+                        autoRefreshToken: true,
+                        detectSessionInUrl: true
+                    }
+                });
+            } catch (error) {
+                console.error("Errore inizializzazione Supabase:", error);
+                alert("Errore di configurazione. Ricarica la pagina.");
+                return;
+            }
+
+            // 🏗️ ELEMENTI DEL DOM
+            const elements = {
+                authSection: document.getElementById('auth-section'),
+                managementSection: document.getElementById('management-section'),
+                unauthorizedSection: document.getElementById('unauthorized-section'),
+                loginBtn: document.getElementById('login-btn'),
+                logoutBtn: document.getElementById('logout-btn'),
+                logoutBtnUnauthorized: document.getElementById('logout-btn-unauthorized'),
+                profileEmail: document.getElementById('profile-email'),
+                profileDisplayName: document.getElementById('profile-display-name'),
+                profileImage: document.getElementById('profile-image'),
+                profileImageInput: document.getElementById('profile-image-input'),
+                authorNameInput: document.getElementById('author-name'),
+                authorBioInput: document.getElementById('author-bio'),
+                authorInstagramInput: document.getElementById('author-instagram'),
+                saveProfileBtn: document.getElementById('save-profile-btn'),
+                poemForm: document.getElementById('poem-form'),
+                poemsContainer: document.getElementById('poems-container'),
+                editModal: document.getElementById('edit-modal'),
+                editForm: document.getElementById('edit-poem-form'),
+                editPoemId: document.getElementById('edit-poem-id'),
+                editPoemTitle: document.getElementById('edit-poem-title'),
+                editPoemContent: document.getElementById('edit-poem-content'),
+                editPoemStatus: document.getElementById('edit-poem-status'),
+                closeModalBtn: document.getElementById('close-modal-btn')
+            };
+            
+            // 👁️ FUNZIONI DI VISIBILITÀ
+            const showAuthSection = () => {
+                elements.authSection.classList.remove('hidden');
+                elements.managementSection.classList.add('hidden');
+                elements.unauthorizedSection.classList.add('hidden');
+            };
+            const showManagementSection = () => {
+                elements.authSection.classList.add('hidden');
+                elements.managementSection.classList.remove('hidden');
+                elements.unauthorizedSection.classList.add('hidden');
+            };
+            const showUnauthorizedSection = () => {
+                elements.authSection.classList.add('hidden');
+                elements.managementSection.classList.add('hidden');
+                elements.unauthorizedSection.classList.remove('hidden');
+            };
+
+
+            // 🔐 GESTIONE AUTENTICAZIONE
+            async function checkSession() {
+                try {
+                    const { data: { session }, error } = await supabase.auth.getSession();
+                    if (error) throw error;
+
+                    if (session && session.user) {
+                        if(session.user.email === AUTHORIZED_EMAIL) {
+                            currentUser = session.user;
+                            showManagementSection();
+                            await loadProfile();
+                            await loadPoems();
+                        } else {
+                            showUnauthorizedSection();
+                        }
+                    } else {
+                        showAuthSection();
+                    }
+                } catch (error) {
+                    console.error("Errore verifica sessione:", error);
+                    showAuthSection();
+                }
+            }
+            
+            async function loginWithGoogle() {
+                try {
+                    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+                    if (error) throw error;
+                } catch (error) {
+                    console.error("Login fallito:", error);
+                    alert("Errore durante il login: " + error.message);
+                }
+            }
+
+            async function logout() {
+                try {
+                    const { error } = await supabase.auth.signOut();
+                    if (error) throw error;
+                    currentUser = null;
+                    profileData = null;
+                    allPoems = [];
+                    showAuthSection();
+                } catch(error) {
+                    console.error("Logout fallito:", error);
+                }
+            }
+            
+
+            // 👤 GESTIONE PROFILO
+            async function loadProfile() {
+                if (!currentUser?.id) return;
+                
+                // Popola info di base
+                elements.profileEmail.textContent = currentUser.email;
+                elements.profileDisplayName.textContent = currentUser.user_metadata?.full_name || 'Nome non impostato';
+                elements.profileImage.src = currentUser.user_metadata?.avatar_url || 'https://via.placeholder.com/100';
+
+                try {
+                    const { data, error } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+                    if (error && error.code !== 'PGRST116') throw error; // Ignora errore "nessuna riga"
+
+                    profileData = data;
+                    if (profileData) {
+                        elements.authorNameInput.value = profileData.username || currentUser.user_metadata?.full_name;
+                        elements.authorBioInput.value = profileData.bio || '';
+                        elements.authorInstagramInput.value = profileData.instagram || '';
+                        if(profileData.avatar_url) {
+                            elements.profileImage.src = profileData.avatar_url;
+                        }
+                    }
+                } catch (error) {
+                    console.error("Errore caricamento profilo da DB:", error);
+                }
+            }
+            
+            async function handleProfileSave(e) {
+                e.preventDefault();
+                const profileUpdates = {
+                    id: currentUser.id,
+                    username: elements.authorNameInput.value,
+                    bio: elements.authorBioInput.value,
+                    instagram: elements.authorInstagramInput.value,
+                    updated_at: new Date()
+                };
+
+                try {
+                    const { error } = await supabase.from('profiles').upsert(profileUpdates);
+                    if (error) throw error;
+                    alert('Profilo salvato con successo!');
+                    await loadProfile();
+                } catch (error) {
+                    console.error("Errore salvataggio profilo:", error);
+                    alert('Errore nel salvataggio del profilo.');
+                }
+            }
+
+            async function handleImageUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const filePath = `${currentUser.id}/${Date.now()}-${file.name}`;
+                try {
+                    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl }, error: urlError } = supabase.storage.from('avatars').getPublicUrl(filePath);
+                    if (urlError) throw urlError;
+                    
+                    const { error: dbError } = await supabase.from('profiles').upsert({ id: currentUser.id, avatar_url: publicUrl });
+                    if(dbError) throw dbError;
+
+                    elements.profileImage.src = publicUrl;
+                    alert('Immagine profilo aggiornata!');
+
+                } catch (error) {
+                    console.error("Errore upload immagine:", error);
+                    alert("Impossibile caricare l'immagine.");
+                }
+            }
+
+
+            // 📜 GESTIONE POESIE
+            async function loadPoems() {
+                if (!currentUser?.id) return;
+                elements.poemsContainer.innerHTML = '<p>Caricamento poesie...</p>';
+                try {
+                    const { data, error } = await supabase.from('poesie').select('*').eq('profile_id', currentUser.id).order('created_at', { ascending: false });
+                    if (error) throw error;
+                    allPoems = data || [];
+                    renderPoems();
+                } catch (error) {
+                    console.error("Errore caricamento poesie:", error);
+                    elements.poemsContainer.innerHTML = '<p class="error">Errore nel caricamento delle poesie.</p>';
+                }
+            }
+            
+            function renderPoems() {
+                if (allPoems.length === 0) {
+                    elements.poemsContainer.innerHTML = '<p>Nessuna poesia pubblicata.</p>';
+                    return;
+                }
+                elements.poemsContainer.innerHTML = allPoems.map(poem => `
+                    <div class="poem-card" data-id="${poem.id}">
+                        <h3>${poem.title} <span class="status-badge ${poem.status || 'draft'}">${poem.status === 'published' ? 'Pubblicata' : 'Bozza'}</span></h3>
+                        <p class="poem-date">Creato il: ${new Date(poem.created_at).toLocaleDateString('it-IT')}</p>
+                        <div class="poem-actions">
+                            <button class="edit-btn btn" data-id="${poem.id}"><i class="fas fa-edit"></i> Modifica</button>
+                            <button class="delete-btn btn btn-danger" data-id="${poem.id}"><i class="fas fa-trash-alt"></i> Elimina</button>
+                        </div>
+                    </div>`).join('');
+            }
+
+            async function handlePoemSubmit(e) {
+                e.preventDefault();
+                const newPoem = {
+                    profile_id: currentUser.id,
+                    title: document.getElementById('poem-title').value,
+                    content: document.getElementById('poem-content').value,
+                    status: document.getElementById('poem-status').value
+                };
+                try {
+                    const { error } = await supabase.from('poesie').insert(newPoem);
+                    if (error) throw error;
+                    alert('Poesia aggiunta!');
+                    elements.poemForm.reset();
+                    await loadPoems();
+                } catch (error) {
+                    console.error("Errore aggiunta poesia:", error);
+                    alert("Impossibile aggiungere la poesia.");
+                }
+            }
+
+            function openEditModal(poemId) {
+                const poem = allPoems.find(p => p.id == poemId);
+                if (!poem) return;
+                elements.editPoemId.value = poem.id;
+                elements.editPoemTitle.value = poem.title;
+                elements.editPoemContent.value = poem.content;
+                elements.editPoemStatus.value = poem.status;
+                elements.editModal.classList.remove('hidden');
+            }
+            
+            async function handlePoemUpdate(e) {
+                e.preventDefault();
+                const poemUpdates = {
+                    title: elements.editPoemTitle.value,
+                    content: elements.editPoemContent.value,
+                    status: elements.editPoemStatus.value
+                };
+                const poemId = elements.editPoemId.value;
+                try {
+                    const { error } = await supabase.from('poesie').update(poemUpdates).eq('id', poemId);
+                    if (error) throw error;
+                    alert('Poesia aggiornata!');
+                    elements.editModal.classList.add('hidden');
+                    await loadPoems();
+                } catch (error) {
+                    console.error("Errore aggiornamento poesia:", error);
+                    alert("Impossibile aggiornare la poesia.");
+                }
+            }
+            
+            async function confirmDeletePoem(poemId) {
+                if (!confirm('Sei sicuro di voler eliminare questa poesia? L\'azione è irreversibile.')) return;
+                try {
+                    const { error } = await supabase.from('poesie').delete().eq('id', poemId);
+                    if (error) throw error;
+                    alert('Poesia eliminata.');
+                    await loadPoems();
+                } catch (error) {
+                    console.error("Errore eliminazione poesia:", error);
+                    alert("Impossibile eliminare la poesia.");
+                }
+            }
+
+
+            // 🎛️ SETUP EVENT LISTENERS
+            function setupEventListeners() {
+                elements.loginBtn.addEventListener('click', loginWithGoogle);
+                elements.logoutBtn.addEventListener('click', logout);
+                elements.logoutBtnUnauthorized.addEventListener('click', logout);
+                elements.saveProfileBtn.addEventListener('click', handleProfileSave);
+                elements.profileImageInput.addEventListener('change', handleImageUpload);
+                elements.poemForm.addEventListener('submit', handlePoemSubmit);
+                elements.editForm.addEventListener('submit', handlePoemUpdate);
+                elements.closeModalBtn.addEventListener('click', () => elements.editModal.classList.add('hidden'));
+                
+                elements.poemsContainer.addEventListener('click', (e) => {
+                    if (e.target.closest('.edit-btn')) {
+                        openEditModal(e.target.closest('.edit-btn').dataset.id);
+                    }
+                    if (e.target.closest('.delete-btn')) {
+                        confirmDeletePoem(e.target.closest('.delete-btn').dataset.id);
+                    }
+                });
+            }
+
+            // 🚀 INIZIALIZZAZIONE APP
+            setupEventListeners();
+            checkSession();
+        });
+    </script>
+</body>
+</html>
